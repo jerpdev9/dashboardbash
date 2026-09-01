@@ -77,7 +77,7 @@ el instalador necesita implementar su gestor, sus equivalencias de paquetes y su
 ### Instalación desde el repositorio
 
 ```bash
-git clone <URL_DEL_REPOSITORIO> dashbash-installer
+git clone https://github.com/jerpdev9/dashboardbash.git dashbash-installer
 cd dashbash-installer
 ./install-dashbash.sh
 ```
@@ -85,17 +85,16 @@ cd dashbash-installer
 ### Instalación mediante `curl`
 
 El instalador contiene copias embebidas de la sesión de kitty y del launcher, por lo que
-funciona sin clonar el repositorio. Reemplaza `<URL_RAW>` por la URL raw que contiene
-`install-dashbash.sh`:
+funciona sin clonar el repositorio:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fsSL <URL_RAW>/install-dashbash.sh | bash
+curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/jerpdev9/dashboardbash/main/install-dashbash.sh | bash
 ```
 
 Para revisar el código antes de ejecutarlo:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fsSLo install-dashbash.sh <URL_RAW>/install-dashbash.sh
+curl --proto '=https' --tlsv1.2 -fsSLo install-dashbash.sh https://raw.githubusercontent.com/jerpdev9/dashboardbash/main/install-dashbash.sh
 less install-dashbash.sh
 chmod +x install-dashbash.sh
 ./install-dashbash.sh
@@ -113,8 +112,8 @@ chmod +x install-dashbash.sh
 Los argumentos también funcionan mediante stdin:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fsSL <URL_RAW>/install-dashbash.sh | bash -s -- --check
-curl --proto '=https' --tlsv1.2 -fsSL <URL_RAW>/install-dashbash.sh | bash -s -- --no-config
+curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/jerpdev9/dashboardbash/main/install-dashbash.sh | bash -s -- --check
+curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/jerpdev9/dashboardbash/main/install-dashbash.sh | bash -s -- --no-config
 ```
 
 ### Qué instala
@@ -270,24 +269,23 @@ a package-manager backend, package mappings, and dedicated tests.
 ### Install from the repository
 
 ```bash
-git clone <REPOSITORY_URL> dashbash-installer
+git clone https://github.com/jerpdev9/dashboardbash.git dashbash-installer
 cd dashbash-installer
 ./install-dashbash.sh
 ```
 
 ### Install with `curl`
 
-The kitty session and launcher are embedded in the installer, so cloning is optional.
-Replace `<RAW_URL>` with the raw URL containing `install-dashbash.sh`:
+The kitty session and launcher are embedded in the installer, so cloning is optional:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fsSL <RAW_URL>/install-dashbash.sh | bash
+curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/jerpdev9/dashboardbash/main/install-dashbash.sh | bash
 ```
 
 To inspect the script before running it:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fsSLo install-dashbash.sh <RAW_URL>/install-dashbash.sh
+curl --proto '=https' --tlsv1.2 -fsSLo install-dashbash.sh https://raw.githubusercontent.com/jerpdev9/dashboardbash/main/install-dashbash.sh
 less install-dashbash.sh
 chmod +x install-dashbash.sh
 ./install-dashbash.sh
@@ -305,8 +303,8 @@ chmod +x install-dashbash.sh
 Arguments also work when the script is provided through stdin:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fsSL <RAW_URL>/install-dashbash.sh | bash -s -- --check
-curl --proto '=https' --tlsv1.2 -fsSL <RAW_URL>/install-dashbash.sh | bash -s -- --no-config
+curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/jerpdev9/dashboardbash/main/install-dashbash.sh | bash -s -- --check
+curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/jerpdev9/dashboardbash/main/install-dashbash.sh | bash -s -- --no-config
 ```
 
 ### What gets installed
