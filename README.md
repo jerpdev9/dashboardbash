@@ -173,7 +173,9 @@ Crates de Rust:
 | `bottom` | `btm` | Pestaña Monitor |
 
 Si `cargo` no está disponible, el instalador instala rustup con un perfil mínimo. La
-primera compilación puede tardar varios minutos. También genera `es_CL.UTF-8` para el reloj.
+primera compilación puede tardar varios minutos. El launcher añade `~/.cargo/bin` a su
+`PATH` para que siempre encuentre `tclock` y `btm`. También genera `es_CL.UTF-8` para el
+reloj.
 
 ### Archivos administrados
 
@@ -407,7 +409,8 @@ Rust crates:
 | `bottom` | `btm` | Monitor tab |
 
 If `cargo` is unavailable, the installer installs rustup with a minimal profile. The first
-crate compilation may take several minutes. It also generates `es_CL.UTF-8` for the clock.
+crate compilation may take several minutes. The launcher adds `~/.cargo/bin` to its `PATH`
+so it can always find `tclock` and `btm`. It also generates `es_CL.UTF-8` for the clock.
 
 ### Managed files
 

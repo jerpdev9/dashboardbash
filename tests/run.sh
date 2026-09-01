@@ -223,6 +223,7 @@ test_launcher_forwards_expected_kitty_arguments() {
     ln -sf mock-command "$MOCK_BIN/kitty"
     bash "$ROOT/bin/dashbash"
     assert_file_contains "$MOCK_LOG" "kitty --start-as=maximized --session $HOME/.config/kitty/dashboard.conf"
+    assert_file_contains "$ROOT/bin/dashbash" 'export PATH="$HOME/.cargo/bin:$PATH"'
 }
 
 test_dashboard_declares_all_tabs_and_tools() {

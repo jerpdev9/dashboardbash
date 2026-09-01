@@ -255,6 +255,7 @@ install_locale() {
 # ──────────────────────────────────────────────────────────────────────────────
 install_rust() {
     step "Toolchain de Rust"
+    export PATH="$HOME/.cargo/bin:$PATH"
     if have cargo; then
         ok "cargo ya presente ($(cargo --version 2>/dev/null | head -1))"
         return 0
@@ -378,8 +379,9 @@ install_launcher() {
     if [[ -n "$SCRIPT_DIR" && -f "$SCRIPT_DIR/bin/dashbash" ]]; then
         cp "$SCRIPT_DIR/bin/dashbash" "$tmp"
     else
-        cat > "$tmp" <<'DASH_EOF'
+cat > "$tmp" <<'DASH_EOF'
 #!/usr/bin/env bash
+export PATH="$HOME/.cargo/bin:$PATH"
 exec kitty --start-as=maximized --session "$HOME/.config/kitty/dashboard.conf"
 DASH_EOF
     fi
