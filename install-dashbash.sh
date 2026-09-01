@@ -4,7 +4,7 @@
 #
 #  `dashbash` lanza Kitty en modo maximizado con la sesión ~/.config/kitty/dashboard.conf,
 #  que abre 8 pestañas de monitoreo:
-#     Home      → tclock (clock-tui) + cava
+#     Home      → tclock (clock-tui) + fastfetch
 #     System    → btop
 #     Network   → bmon + watch/ss (iproute2, procps)
 #     Hardware  → nvtop
@@ -87,7 +87,7 @@ done
 # Paquetes APT: <binario>:<paquete>
 APT_DEPS=(
     "kitty:kitty"                       # terminal que hospeda el dashboard
-    "cava:cava"                         # visualizador de audio (tab Home)
+    "fastfetch:fastfetch"               # información del sistema (tab Home)
     "btop:btop"                         # monitor de sistema (tab System)
     "bmon:bmon"                         # monitor de ancho de banda (tab Network)
     "ss:iproute2"                       # sockets/puertos (tab Network)
@@ -117,6 +117,8 @@ CARGO_DEPS=(
 
 DASH_LOCALE="es_CL.UTF-8"
 LOCALE_GEN_FILE="${LOCALE_GEN_FILE:-/etc/locale.gen}"
+OS_RELEASE_FILE="${OS_RELEASE_FILE:-/etc/os-release}"
+STATE_DIR="$HOME/.local/state/dashbash"
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Utilidades
@@ -138,9 +140,9 @@ setup_sudo() {
 }
 
 check_os() {
-    [[ -r /etc/os-release ]] || die "no se pudo leer /etc/os-release"
+    [[ -r "$OS_RELEASE_FILE" ]] || die "no se pudo leer $OS_RELEASE_FILE"
     # shellcheck source=/dev/null
-    . /etc/os-release
+    . "$OS_RELEASE_FILE"
     have apt-get || die "este script asume Debian/Ubuntu (apt-get). Detectado: ${PRETTY_NAME:-desconocido}"
     log "Sistema: ${PRETTY_NAME:-$ID $VERSION_ID}"
     case "${ID:-}${ID_LIKE:-}" in
@@ -231,6 +233,31 @@ install_apt() {
     ok "paquetes apt instalados"
 }
 
+ensure_fastfetch_repository() {
+    have fastfetch && return 0
+    if have apt-cache && apt-cache show fastfetch >/dev/null 2>&1; then
+        return 0
+    fi
+
+    case "${ID:-}${ID_LIKE:-}" in
+        *ubuntu*)
+            step "Repositorio de Fastfetch"
+            if ! have add-apt-repository; then
+                log "Instalando software-properties-common para administrar el PPA"
+                $SUDO apt-get update -qq
+                DEBIAN_FRONTEND=noninteractive $SUDO apt-get install -y --no-install-recommends software-properties-common
+            fi
+            log "Añadiendo ppa:zhangsongcui3371/fastfetch"
+            $SUDO add-apt-repository -y ppa:zhangsongcui3371/fastfetch
+            mkdir -p "$STATE_DIR"
+            : > "$STATE_DIR/fastfetch-ppa-added"
+            ;;
+        *)
+            die "fastfetch no está disponible en los repositorios APT configurados; instálalo manualmente y vuelve a ejecutar el script"
+            ;;
+    esac
+}
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Instalación: locale es_CL.UTF-8 (lo usa el reloj del tab Home)
 # ──────────────────────────────────────────────────────────────────────────────
@@ -307,11 +334,11 @@ install_kitty_session() {
         cp "$SCRIPT_DIR/config/dashboard.conf" "$tmp"
     else
     cat > "$tmp" <<'SESSION_EOF'
-# TAB 1 — Home (hora · audio)
+# TAB 1 — Home (hora · información del sistema)
 new_tab Home
 layout tall
 launch sh -lc 'LC_TIME=es_CL.UTF-8 tclock -c "#E6B35A"'
-launch cava
+launch fastfetch
 
 # TAB 2 — System
 new_tab System
@@ -432,6 +459,7 @@ main() {
     fi
 
     setup_sudo
+    ensure_fastfetch_repository
     install_apt
     install_locale
     install_rust

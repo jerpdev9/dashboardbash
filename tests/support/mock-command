@@ -26,7 +26,7 @@ case "$command_name" in
             while [[ $# -gt 0 ]]; do
                 case "$1" in
                     -*) ;;
-                    kitty|cava|btop|bmon|nvtop|gdu|ranger) link_command "$1" ;;
+                    kitty|fastfetch|btop|bmon|nvtop|gdu|ranger) link_command "$1" ;;
                     iproute2) link_command ss ;;
                     procps) link_command watch ;;
                     systemd) link_command journalctl ;;
@@ -47,6 +47,12 @@ case "$command_name" in
                 bottom) link_command btm ;;
             esac
         fi
+        ;;
+    apt-cache)
+        [[ ! -e ${MOCK_APT_CACHE_MISSING:-/nonexistent} && ${1:-} == show && ${2:-} == fastfetch ]]
+        ;;
+    add-apt-repository)
+        :
         ;;
     sudo)
         [[ ${1:-} == -v ]] || exec "$@"

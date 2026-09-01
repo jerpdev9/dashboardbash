@@ -40,15 +40,18 @@ new_fixture() {
     export MOCK_LOCALE_FILE="$FIXTURE/locale-generated"
     export MOCK_DPKG_FILE="$FIXTURE/dpkg-installed"
     export LOCALE_GEN_FILE="$FIXTURE/locale.gen"
+    export OS_RELEASE_FILE="$FIXTURE/os-release"
+    export MOCK_APT_CACHE_MISSING="$FIXTURE/apt-cache-missing"
     mkdir -p "$HOME" "$MOCK_BIN"
     : > "$MOCK_LOG"
     : > "$MOCK_DPKG_FILE"
     printf '# es_CL.UTF-8 UTF-8\n' > "$LOCALE_GEN_FILE"
+    printf 'ID=ubuntu\nID_LIKE=debian\nVERSION_ID="24.04"\nPRETTY_NAME="Ubuntu 24.04 LTS (mock)"\n' > "$OS_RELEASE_FILE"
 
     /bin/cp "$ROOT/tests/support/mock-command" "$MOCK_BIN/mock-command"
     /bin/chmod +x "$MOCK_BIN/mock-command"
     local cmd
-    for cmd in apt-get dpkg locale locale-gen sudo cargo; do
+    for cmd in apt-get apt-cache add-apt-repository dpkg locale locale-gen sudo cargo; do
         /bin/ln -s mock-command "$MOCK_BIN/$cmd"
     done
     for cmd in bash basename cat chmod cmp cp date dirname env find grep head ln mkdir mktemp mv rm rmdir sed seq tee touch wc; do
@@ -59,7 +62,7 @@ new_fixture() {
 
 add_dependency_commands() {
     local cmd
-    for cmd in kitty cava btop bmon ss watch nvtop gdu ranger journalctl fc-list tclock btm; do
+    for cmd in kitty fastfetch btop bmon ss watch nvtop gdu ranger journalctl fc-list tclock btm; do
         ln -sf mock-command "$MOCK_BIN/$cmd"
     done
     printf '%s\n' fonts-jetbrains-mono ca-certificates curl build-essential pkg-config > "$MOCK_DPKG_FILE"
@@ -147,6 +150,16 @@ test_full_install_from_empty_fixture() {
     [[ -e $MOCK_LOCALE_FILE ]] || fail 'no se generó el locale'
 }
 
+test_install_adds_fastfetch_ppa_when_apt_lacks_package() {
+    new_fixture
+    touch "$MOCK_APT_CACHE_MISSING"
+    invoke
+    assert_status "$STATUS" 0
+    assert_file_contains "$MOCK_LOG" 'add-apt-repository -y ppa:zhangsongcui3371/fastfetch'
+    [[ -f $HOME/.local/state/dashbash/fastfetch-ppa-added ]] || fail 'no registró el PPA añadido'
+    [[ -x $MOCK_BIN/fastfetch ]] || fail 'fastfetch no quedó instalado'
+}
+
 test_standalone_install_from_stdin() {
     new_fixture
     invoke_from_stdin
@@ -230,7 +243,7 @@ test_dashboard_declares_all_tabs_and_tools() {
     local config="$ROOT/config/dashboard.conf"
     [[ $(grep -c '^new_tab ' "$config") -eq 8 ]] || fail 'se esperaban 8 pestañas'
     local item
-    for item in Home System Network Hardware Disks Monitor Files Logs tclock cava btop bmon ss nvtop gdu btm ranger journalctl; do
+    for item in Home System Network Hardware Disks Monitor Files Logs tclock fastfetch btop bmon ss nvtop gdu btm ranger journalctl; do
         grep -Fq "$item" "$config" || fail "falta $item en dashboard.conf"
     done
 }
@@ -282,12 +295,16 @@ test_uninstall_dry_run_changes_nothing() {
 test_uninstall_purges_dependencies_on_request() {
     new_fixture
     add_dependency_commands
+    mkdir -p "$HOME/.local/state/dashbash"
+    : > "$HOME/.local/state/dashbash/fastfetch-ppa-added"
     invoke_uninstall --purge-deps
     assert_status "$STATUS" 0
     assert_file_contains "$MOCK_LOG" 'cargo uninstall clock-tui bottom'
-    assert_file_contains "$MOCK_LOG" 'apt-get purge -y kitty cava btop'
+    assert_file_contains "$MOCK_LOG" 'apt-get purge -y kitty fastfetch btop'
     ! grep -Fq 'systemd' "$MOCK_LOG" || fail 'intentó retirar una dependencia fundamental'
     ! grep -Fq 'apt-get autoremove' "$MOCK_LOG" || fail 'ejecutó autoremove'
+    assert_file_contains "$MOCK_LOG" 'add-apt-repository --remove -y ppa:zhangsongcui3371/fastfetch'
+    assert_not_exists "$HOME/.local/state/dashbash/fastfetch-ppa-added"
 }
 
 test_manager_help() {
@@ -338,6 +355,7 @@ run_test 'rechaza opciones desconocidas' test_unknown_option
 run_test 'check detecta faltantes y no modifica' test_check_reports_missing_without_writes
 run_test 'check confirma una instalación completa' test_check_succeeds_when_complete
 run_test 'instala desde un entorno vacío simulado' test_full_install_from_empty_fixture
+run_test 'añade el PPA cuando apt no ofrece fastfetch' test_install_adds_fastfetch_ppa_when_apt_lacks_package
 run_test 'se instala como script independiente vía stdin' test_standalone_install_from_stdin
 run_test 'curl-style reenvía argumentos al instalador' test_stdin_forwards_check_argument
 run_test 'check detecta paquetes apt extra faltantes' test_check_reports_missing_extra_packages

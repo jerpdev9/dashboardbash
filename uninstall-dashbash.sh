@@ -112,8 +112,12 @@ setup_sudo() {
     elif have sudo; then
         SUDO="sudo"
         log "Se requieren privilegios para retirar las herramientas APT."
-        printf '  sudo solicitará tu contraseña en esta terminal si es necesario.\n'
-        sudo -v || die "no se obtuvo autorización de sudo"
+        if [[ $DRY_RUN -eq 1 ]]; then
+            printf '  → sudo solicitaría autorización en una ejecución real.\n'
+        else
+            printf '  sudo solicitará tu contraseña en esta terminal si es necesario.\n'
+            sudo -v || die "no se obtuvo autorización de sudo"
+        fi
     else
         die "se necesita root o sudo para retirar paquetes APT"
     fi
@@ -132,10 +136,22 @@ purge_dependencies() {
     setup_sudo
     # No se purgan dependencias fundamentales compartidas (systemd, procps,
     # iproute2, locales, curl, certificados ni toolchains de compilación).
-    local packages=(kitty cava btop bmon nvtop gdu ranger fonts-jetbrains-mono)
+    local packages=(kitty fastfetch btop bmon nvtop gdu ranger fonts-jetbrains-mono)
     log "Paquetes del sistema"
     run ${SUDO:+$SUDO} apt-get purge -y "${packages[@]}"
     ok "herramientas APT específicas de dashbash retiradas"
+
+    local ppa_marker="$HOME/.local/state/dashbash/fastfetch-ppa-added"
+    if [[ -f "$ppa_marker" ]]; then
+        if have add-apt-repository; then
+            run ${SUDO:+$SUDO} add-apt-repository --remove -y ppa:zhangsongcui3371/fastfetch
+            remove_file "$ppa_marker"
+            [[ $DRY_RUN -eq 1 ]] || rmdir -- "$HOME/.local/state/dashbash" 2>/dev/null || true
+            ok "PPA de fastfetch retirado"
+        else
+            warn "no se encontró add-apt-repository; se conserva el PPA de fastfetch"
+        fi
+    fi
 }
 
 main() {

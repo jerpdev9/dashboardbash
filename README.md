@@ -15,7 +15,7 @@ clon local o directamente mediante `curl`.
 
 | # | Pestaña | Herramientas | Función |
 |---:|---|---|---|
-| 1 | `Home` | `tclock`, `cava` | Reloj y visualizador de audio |
+| 1 | `Home` | `tclock`, `fastfetch` | Reloj e información del sistema |
 | 2 | `System` | `btop` | CPU, memoria y procesos |
 | 3 | `Network` | `bmon`, `watch`, `ss` | Tráfico de red y puertos en escucha |
 | 4 | `Hardware` | `nvtop` | Uso, memoria y temperatura de GPU |
@@ -38,6 +38,10 @@ instalador. Los componentes `universe` y `multiverse` deben estar habilitados po
 dependencias proceden de ellos. En otras versiones Debian/Ubuntu recientes debería
 funcionar, aunque no están verificadas.
 
+En Ubuntu 24.04, donde `fastfetch` todavía no forma parte del repositorio oficial, el
+instalador añade `ppa:zhangsongcui3371/fastfetch`, recomendado en la
+[documentación oficial de Fastfetch](https://github.com/fastfetch-cli/fastfetch#installation).
+
 Antes de modificar paquetes o locales del sistema, el script anuncia la operación y
 ejecuta `sudo -v`. Si hace falta autenticación, `sudo` solicita la contraseña directamente
 en la terminal. Los archivos del directorio personal se administran sin `sudo`.
@@ -50,12 +54,12 @@ de todos los paquetes APT. La apertura gráfica de kitty no puede validarse en u
 
 | Distribución | Estado | Evidencia y ajustes |
 |---|---|---|
-| Ubuntu 24.04 LTS | ✅ Probado | El diagnóstico se ejecuta y los 17 paquetes APT están disponibles. Habilita `universe` y `multiverse`. |
-| Kubuntu 24.04 LTS | ✅ Compatible | Usa la base Ubuntu Noble; KDE Plasma no cambia el instalador. Habilita `universe` y `multiverse`. |
+| Ubuntu 24.04 LTS | ✅ Compatible | `fastfetch` requiere el PPA recomendado por su proyecto, que el instalador añade automáticamente. Habilita `universe` y `multiverse`. |
+| Kubuntu 24.04 LTS | ✅ Compatible | Usa la base Ubuntu Noble; el instalador añade automáticamente el PPA de `fastfetch`. Habilita `universe` y `multiverse`. |
 | Linux Mint 22.x | 🟡 Compatible por base | Mint 22.x usa Ubuntu Noble. No se probó una imagen de escritorio completa. No aplica a LMDE. |
 | Pop!_OS basado en Ubuntu | 🟡 Compatible por base | Usa APT y repositorios Ubuntu; no se probó una imagen de escritorio completa. |
 | Debian 13 (Trixie) | ✅ Probado | El diagnóstico se ejecuta y todos los paquetes APT declarados están disponibles. |
-| Debian 12 (Bookworm) | ⚠️ Requiere ajuste | El diagnóstico se ejecuta; `nvtop` está en `contrib`, que debe habilitarse antes. |
+| Debian 12 (Bookworm) | ⚠️ Requiere ajuste | `nvtop` requiere `contrib` y `fastfetch` no está en los repositorios oficiales; debe instalarse manualmente. |
 | Fedora 42 | ❌ No soportado | Probado: se detiene de forma segura porque no existe `apt-get`; requeriría un backend DNF. |
 | Arch Linux / Manjaro | ❌ No soportado | Probado en Arch: se detiene de forma segura; requeriría un backend pacman/AUR. |
 | openSUSE Leap 15.6 | ❌ No soportado | Probado: se detiene de forma segura; requeriría un backend Zypper. |
@@ -161,7 +165,7 @@ curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/jerpdev9
 
 Paquetes APT:
 
-`kitty`, `cava`, `btop`, `bmon`, `iproute2`, `procps`, `nvtop`, `gdu`, `ranger`,
+`kitty`, `fastfetch`, `btop`, `bmon`, `iproute2`, `procps`, `nvtop`, `gdu`, `ranger`,
 `systemd`, `locales`, `fontconfig`, `fonts-jetbrains-mono`, `ca-certificates`, `curl`,
 `build-essential` y `pkg-config`.
 
@@ -185,6 +189,7 @@ reloj.
 | `~/bin/dashbash` | Launcher ejecutable de kitty |
 | `~/.config/kitty/kitty.conf` | Se crea solo si no existe; no reemplaza personalizaciones |
 | `~/.bashrc` | Añade `~/bin` al `PATH` únicamente cuando hace falta |
+| `~/.local/state/dashbash/fastfetch-ppa-added` | Registra si el instalador añadió el PPA de Fastfetch |
 
 Antes de reemplazar un archivo administrado, se crea una copia `.bak.<timestamp>`. Una
 reinstalación sin cambios no genera respaldos adicionales.
@@ -253,7 +258,7 @@ targets Debian/Ubuntu, is idempotent, and can run from a local clone or directly
 
 | # | Tab | Tools | Purpose |
 |---:|---|---|---|
-| 1 | `Home` | `tclock`, `cava` | Clock and audio visualizer |
+| 1 | `Home` | `tclock`, `fastfetch` | Clock and system information |
 | 2 | `System` | `btop` | CPU, memory, and processes |
 | 3 | `Network` | `bmon`, `watch`, `ss` | Network traffic and listening ports |
 | 4 | `Hardware` | `nvtop` | GPU usage, memory, and temperature |
@@ -275,6 +280,10 @@ Ubuntu package base and repositories, and KDE Plasma requires no installer chang
 `universe` and `multiverse` components must be enabled because several dependencies come
 from them. Other recent Debian/Ubuntu releases should work, but are not verified.
 
+On Ubuntu 24.04, where `fastfetch` is not yet part of the official repository, the
+installer adds `ppa:zhangsongcui3371/fastfetch`, as recommended by the
+[official Fastfetch documentation](https://github.com/fastfetch-cli/fastfetch#installation).
+
 Before changing system packages or locales, the script announces the operation and runs
 `sudo -v`. When authentication is needed, `sudo` requests the password directly in the
 terminal. Files inside the home directory are managed without `sudo`.
@@ -287,12 +296,12 @@ cannot be validated inside a container.
 
 | Distribution | Status | Evidence and adjustments |
 |---|---|---|
-| Ubuntu 24.04 LTS | ✅ Tested | Diagnostics run and all 17 APT packages are available. Enable `universe` and `multiverse`. |
-| Kubuntu 24.04 LTS | ✅ Compatible | Uses the Ubuntu Noble base; KDE Plasma does not change the installer. Enable `universe` and `multiverse`. |
+| Ubuntu 24.04 LTS | ✅ Compatible | `fastfetch` requires the PPA recommended by its project, which the installer adds automatically. Enable `universe` and `multiverse`. |
+| Kubuntu 24.04 LTS | ✅ Compatible | Uses the Ubuntu Noble base; the installer automatically adds the `fastfetch` PPA. Enable `universe` and `multiverse`. |
 | Linux Mint 22.x | 🟡 Base-compatible | Mint 22.x uses Ubuntu Noble. A complete desktop image was not tested. This does not cover LMDE. |
 | Ubuntu-based Pop!_OS | 🟡 Base-compatible | Uses APT and Ubuntu repositories; a complete desktop image was not tested. |
 | Debian 13 (Trixie) | ✅ Tested | Diagnostics run and every declared APT package is available. |
-| Debian 12 (Bookworm) | ⚠️ Adjustment required | Diagnostics run; `nvtop` is in `contrib`, which must be enabled first. |
+| Debian 12 (Bookworm) | ⚠️ Adjustment required | `nvtop` requires `contrib`, and `fastfetch` is absent from the official repositories; install it manually. |
 | Fedora 42 | ❌ Unsupported | Tested: exits safely because `apt-get` is absent; a DNF backend is required. |
 | Arch Linux / Manjaro | ❌ Unsupported | Tested on Arch: exits safely; a pacman/AUR backend is required. |
 | openSUSE Leap 15.6 | ❌ Unsupported | Tested: exits safely; a Zypper backend is required. |
@@ -397,7 +406,7 @@ curl --proto '=https' --tlsv1.2 -fsSL https://raw.githubusercontent.com/jerpdev9
 
 APT packages:
 
-`kitty`, `cava`, `btop`, `bmon`, `iproute2`, `procps`, `nvtop`, `gdu`, `ranger`,
+`kitty`, `fastfetch`, `btop`, `bmon`, `iproute2`, `procps`, `nvtop`, `gdu`, `ranger`,
 `systemd`, `locales`, `fontconfig`, `fonts-jetbrains-mono`, `ca-certificates`, `curl`,
 `build-essential`, and `pkg-config`.
 
@@ -420,6 +429,7 @@ so it can always find `tclock` and `btm`. It also generates `es_CL.UTF-8` for th
 | `~/bin/dashbash` | Executable kitty launcher |
 | `~/.config/kitty/kitty.conf` | Created only when absent; customizations are not overwritten |
 | `~/.bashrc` | Adds `~/bin` to `PATH` only when needed |
+| `~/.local/state/dashbash/fastfetch-ppa-added` | Records whether the installer added the Fastfetch PPA |
 
 Before replacing a managed file, the installer creates a `.bak.<timestamp>` copy. Running
 it again without changes does not create additional backups.
