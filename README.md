@@ -15,7 +15,7 @@ clon local o directamente mediante `curl`.
 
 | # | Pestaña | Herramientas | Función |
 |---:|---|---|---|
-| 1 | `Home` | `tclock`, `fastfetch` | Reloj e información del sistema |
+| 1 | `Home` | `tclock`, `fastfetch` | Reloj e información del sistema; Fastfetch permanece visible en el panel derecho |
 | 2 | `System` | `btop` | CPU, memoria y procesos |
 | 3 | `Network` | `bmon`, `watch`, `ss` | Tráfico de red y puertos en escucha |
 | 4 | `Hardware` | `nvtop` | Uso, memoria y temperatura de GPU |
@@ -260,7 +260,7 @@ targets Debian/Ubuntu, is idempotent, and can run from a local clone or directly
 
 | # | Tab | Tools | Purpose |
 |---:|---|---|---|
-| 1 | `Home` | `tclock`, `fastfetch` | Clock and system information |
+| 1 | `Home` | `tclock`, `fastfetch` | Clock and system information; Fastfetch remains visible in the right pane |
 | 2 | `System` | `btop` | CPU, memory, and processes |
 | 3 | `Network` | `bmon`, `watch`, `ss` | Network traffic and listening ports |
 | 4 | `Hardware` | `nvtop` | GPU usage, memory, and temperature |

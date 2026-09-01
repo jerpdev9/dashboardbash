@@ -250,6 +250,12 @@ test_dashboard_declares_all_tabs_and_tools() {
     done
 }
 
+test_fastfetch_pane_stays_open() {
+    assert_file_contains "$ROOT/config/dashboard.conf" 'fastfetch; exec "${SHELL:-/bin/bash}" -l'
+    grep -Fq 'fastfetch; exec "${SHELL:-/bin/bash}" -l' "$ROOT/install-dashbash.sh" \
+        || fail 'la copia embebida no mantiene abierto el panel de fastfetch'
+}
+
 test_bottom_version_is_pinned_for_rust_compatibility() {
     grep -Fq '"btm:bottom:0.13.0"' "$ROOT/install-dashbash.sh" \
         || fail 'bottom debe conservar una versión compatible fijada'
@@ -378,6 +384,7 @@ run_test 'reinstalación idéntica es idempotente' test_reinstall_is_idempotent_
 run_test 'respalda archivos modificados' test_changed_files_are_backed_up
 run_test 'launcher invoca kitty correctamente' test_launcher_forwards_expected_kitty_arguments
 run_test 'dashboard conserva sus 8 pestañas' test_dashboard_declares_all_tabs_and_tools
+run_test 'panel de fastfetch permanece abierto' test_fastfetch_pane_stays_open
 run_test 'bottom conserva una versión compatible de Rust' test_bottom_version_is_pinned_for_rust_compatibility
 run_test 'instalador actualiza Rust estable' test_installer_updates_latest_stable_rust
 run_test 'desinstalador elimina solo archivos administrados' test_uninstall_removes_only_managed_files

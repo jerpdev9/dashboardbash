@@ -354,7 +354,7 @@ install_kitty_session() {
 new_tab Home
 layout tall
 launch sh -lc 'LC_TIME=es_CL.UTF-8 tclock -c "#E6B35A"'
-launch fastfetch
+launch sh -lc 'fastfetch; exec "${SHELL:-/bin/bash}" -l'
 
 # TAB 2 — System
 new_tab System
