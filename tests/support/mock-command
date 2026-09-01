@@ -49,6 +49,6 @@ case "$command_name" in
         fi
         ;;
     sudo)
-        exec "$@"
+        [[ ${1:-} == -v ]] || exec "$@"
         ;;
 esac

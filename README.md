@@ -38,6 +38,10 @@ instalador. Los componentes `universe` y `multiverse` deben estar habilitados po
 dependencias proceden de ellos. En otras versiones Debian/Ubuntu recientes debería
 funcionar, aunque no están verificadas.
 
+Antes de modificar paquetes o locales del sistema, el script anuncia la operación y
+ejecuta `sudo -v`. Si hace falta autenticación, `sudo` solicita la contraseña directamente
+en la terminal. Los archivos del directorio personal se administran sin `sudo`.
+
 ### Compatibilidad entre distribuciones
 
 Comprobación realizada el **1 de septiembre de 2026**. “Probado” significa que se ejecutó
@@ -102,12 +106,49 @@ chmod +x install-dashbash.sh
 
 ### Modos de uso
 
+El administrador maestro ofrece un menú interactivo al ejecutarlo sin argumentos:
+
+```bash
+./dashbash-manager.sh
+```
+
+También admite comandos directos, útiles para automatización:
+
+```bash
+./dashbash-manager.sh install
+./dashbash-manager.sh uninstall
+./dashbash-manager.sh update
+```
+
+`update` elimina los archivos administrados y ejecuta inmediatamente una instalación
+nueva. Conserva las dependencias, los respaldos y cualquier `kitty.conf` personalizado.
+
 | Comando | Resultado |
 |---|---|
 | `./install-dashbash.sh` | Instala dependencias, configuración y launcher |
 | `./install-dashbash.sh --check` | Diagnostica sin cambios; devuelve `1` si falta algo |
 | `./install-dashbash.sh --no-config` | Instala solo dependencias y omite `~/.config` y `~/bin` |
 | `./install-dashbash.sh --help` | Muestra la ayuda |
+
+### Desinstalación
+
+Para retirar los archivos propios de dashbash sin eliminar programas compartidos:
+
+```bash
+./uninstall-dashbash.sh
+```
+
+Para previsualizar las acciones o realizar una desinstalación completa con dependencias:
+
+```bash
+./uninstall-dashbash.sh --dry-run
+./uninstall-dashbash.sh --purge-deps
+```
+
+`--purge-deps` elimina los crates y las herramientas APT específicas del dashboard; úsalo
+solo si no las necesitas para otros fines. Conserva dependencias fundamentales compartidas
+como `systemd`, `procps`, `iproute2`, locales, certificados y toolchains. Los respaldos
+`.bak.*` y un `kitty.conf` personalizado siempre se conservan.
 
 Los argumentos también funcionan mediante stdin:
 
@@ -181,7 +222,9 @@ idempotencia, respaldos, launcher y las ocho pestañas.
 
 ```text
 dashbash-installer/
+├── dashbash-manager.sh
 ├── install-dashbash.sh
+├── uninstall-dashbash.sh
 ├── bin/
 │   └── dashbash
 ├── config/
@@ -229,6 +272,10 @@ The project is compatible with Ubuntu and Kubuntu 24.04 LTS on amd64. Kubuntu us
 Ubuntu package base and repositories, and KDE Plasma requires no installer changes. The
 `universe` and `multiverse` components must be enabled because several dependencies come
 from them. Other recent Debian/Ubuntu releases should work, but are not verified.
+
+Before changing system packages or locales, the script announces the operation and runs
+`sudo -v`. When authentication is needed, `sudo` requests the password directly in the
+terminal. Files inside the home directory are managed without `sudo`.
 
 ### Distribution compatibility
 
@@ -293,12 +340,49 @@ chmod +x install-dashbash.sh
 
 ### Usage modes
 
+The master manager displays an interactive menu when run without arguments:
+
+```bash
+./dashbash-manager.sh
+```
+
+It also accepts direct commands for automation:
+
+```bash
+./dashbash-manager.sh install
+./dashbash-manager.sh uninstall
+./dashbash-manager.sh update
+```
+
+`update` removes managed files and immediately performs a fresh installation. It preserves
+dependencies, backups, and any customized `kitty.conf`.
+
 | Command | Result |
 |---|---|
 | `./install-dashbash.sh` | Installs dependencies, configuration, and launcher |
 | `./install-dashbash.sh --check` | Diagnoses without changes; exits with `1` if anything is missing |
 | `./install-dashbash.sh --no-config` | Installs dependencies only and skips `~/.config` and `~/bin` |
 | `./install-dashbash.sh --help` | Displays help |
+
+### Uninstallation
+
+To remove dashbash-owned files without deleting shared programs:
+
+```bash
+./uninstall-dashbash.sh
+```
+
+To preview the actions or perform a complete uninstall including dependencies:
+
+```bash
+./uninstall-dashbash.sh --dry-run
+./uninstall-dashbash.sh --purge-deps
+```
+
+`--purge-deps` removes the crates and dashboard-specific APT tools; use it only if you do
+not need those tools elsewhere. It preserves shared foundational dependencies such as
+`systemd`, `procps`, `iproute2`, locales, certificates, and build toolchains. `.bak.*`
+backups and a customized `kitty.conf` are always preserved.
 
 Arguments also work when the script is provided through stdin:
 
@@ -372,7 +456,9 @@ It covers the CLI, diagnostics, extra packages, local and stdin installation,
 
 ```text
 dashbash-installer/
+├── dashbash-manager.sh
 ├── install-dashbash.sh
+├── uninstall-dashbash.sh
 ├── bin/
 │   └── dashbash
 ├── config/

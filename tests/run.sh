@@ -51,7 +51,7 @@ new_fixture() {
     for cmd in apt-get dpkg locale locale-gen sudo cargo; do
         /bin/ln -s mock-command "$MOCK_BIN/$cmd"
     done
-    for cmd in bash basename cat chmod cmp cp date dirname env find grep head ln mkdir mktemp mv rm sed seq tee touch wc; do
+    for cmd in bash basename cat chmod cmp cp date dirname env find grep head ln mkdir mktemp mv rm rmdir sed seq tee touch wc; do
         /bin/ln -s "$(command -v "$cmd")" "$MOCK_BIN/$cmd"
     done
     export PATH="$MOCK_BIN"
@@ -75,6 +75,20 @@ invoke() {
 invoke_from_stdin() {
     set +e
     OUTPUT="$(cd "$FIXTURE" && bash -s -- "$@" < "$ROOT/install-dashbash.sh" 2>&1)"
+    STATUS=$?
+    set -e
+}
+
+invoke_uninstall() {
+    set +e
+    OUTPUT="$(bash "$ROOT/uninstall-dashbash.sh" "$@" 2>&1)"
+    STATUS=$?
+    set -e
+}
+
+invoke_manager() {
+    set +e
+    OUTPUT="$(bash "$ROOT/dashbash-manager.sh" "$@" 2>&1)"
     STATUS=$?
     set -e
 }
@@ -220,6 +234,104 @@ test_dashboard_declares_all_tabs_and_tools() {
     done
 }
 
+test_uninstall_removes_only_managed_files() {
+    new_fixture
+    mkdir -p "$HOME/.config/kitty" "$HOME/bin"
+    cp "$ROOT/config/dashboard.conf" "$HOME/.config/kitty/dashboard.conf"
+    cp "$ROOT/bin/dashbash" "$HOME/bin/dashbash"
+    printf 'font_family JetBrains Mono\nfont_size 14.0\n' > "$HOME/.config/kitty/kitty.conf"
+    printf 'keep me\n' > "$HOME/.config/kitty/custom.conf"
+    printf 'before\n\n# añadido por install-dashbash.sh\nexport PATH="$HOME/bin:$PATH"\nafter\n' > "$HOME/.bashrc"
+    printf 'backup\n' > "$HOME/bin/dashbash.bak.20260901"
+
+    invoke_uninstall
+    assert_status "$STATUS" 0
+    assert_not_exists "$HOME/bin/dashbash"
+    assert_not_exists "$HOME/.config/kitty/dashboard.conf"
+    assert_not_exists "$HOME/.config/kitty/kitty.conf"
+    assert_file_contains "$HOME/.config/kitty/custom.conf" 'keep me'
+    assert_file_contains "$HOME/bin/dashbash.bak.20260901" 'backup'
+    ! grep -Fq 'añadido por install-dashbash.sh' "$HOME/.bashrc"
+    assert_file_contains "$HOME/.bashrc" 'after'
+    ! grep -Fq 'apt-get purge' "$MOCK_LOG" || fail 'desinstaló paquetes sin --purge-deps'
+}
+
+test_uninstall_preserves_custom_kitty_conf() {
+    new_fixture
+    mkdir -p "$HOME/.config/kitty"
+    printf 'font_size 22\n' > "$HOME/.config/kitty/kitty.conf"
+    invoke_uninstall
+    assert_status "$STATUS" 0
+    assert_file_contains "$HOME/.config/kitty/kitty.conf" 'font_size 22'
+    assert_contains "$OUTPUT" 'contiene personalizaciones'
+}
+
+test_uninstall_dry_run_changes_nothing() {
+    new_fixture
+    mkdir -p "$HOME/.config/kitty" "$HOME/bin"
+    cp "$ROOT/config/dashboard.conf" "$HOME/.config/kitty/dashboard.conf"
+    cp "$ROOT/bin/dashbash" "$HOME/bin/dashbash"
+    invoke_uninstall --dry-run
+    assert_status "$STATUS" 0
+    [[ -f $HOME/bin/dashbash ]]
+    [[ -f $HOME/.config/kitty/dashboard.conf ]]
+    assert_contains "$OUTPUT" 'modo simulación'
+}
+
+test_uninstall_purges_dependencies_on_request() {
+    new_fixture
+    add_dependency_commands
+    invoke_uninstall --purge-deps
+    assert_status "$STATUS" 0
+    assert_file_contains "$MOCK_LOG" 'cargo uninstall clock-tui bottom'
+    assert_file_contains "$MOCK_LOG" 'apt-get purge -y kitty cava btop'
+    ! grep -Fq 'systemd' "$MOCK_LOG" || fail 'intentó retirar una dependencia fundamental'
+    ! grep -Fq 'apt-get autoremove' "$MOCK_LOG" || fail 'ejecutó autoremove'
+}
+
+test_manager_help() {
+    new_fixture
+    invoke_manager --help
+    assert_status "$STATUS" 0
+    assert_contains "$OUTPUT" 'install'
+    assert_contains "$OUTPUT" 'uninstall'
+    assert_contains "$OUTPUT" 'update'
+    [[ ! -s $MOCK_LOG ]] || fail 'la ayuda del administrador ejecutó comandos externos'
+}
+
+test_manager_forwards_install_options() {
+    new_fixture
+    invoke_manager install --check
+    assert_status "$STATUS" 1
+    assert_contains "$OUTPUT" 'Faltan '
+    assert_not_exists "$HOME/.config"
+}
+
+test_manager_forwards_uninstall_options() {
+    new_fixture
+    mkdir -p "$HOME/bin"
+    cp "$ROOT/bin/dashbash" "$HOME/bin/dashbash"
+    invoke_manager uninstall --dry-run
+    assert_status "$STATUS" 0
+    [[ -f $HOME/bin/dashbash ]] || fail 'el administrador no respetó --dry-run'
+    assert_contains "$OUTPUT" 'modo simulación'
+}
+
+test_manager_update_uninstalls_then_installs() {
+    new_fixture
+    mkdir -p "$HOME/.config/kitty" "$HOME/bin"
+    printf 'versión anterior\n' > "$HOME/.config/kitty/dashboard.conf"
+    printf 'launcher anterior\n' > "$HOME/bin/dashbash"
+    invoke_manager update
+    assert_status "$STATUS" 0
+    assert_contains "$OUTPUT" 'Actualizando dashbash'
+    assert_contains "$OUTPUT" 'Reinstalando la versión actual'
+    assert_contains "$OUTPUT" 'actualizado correctamente'
+    cmp -s "$ROOT/config/dashboard.conf" "$HOME/.config/kitty/dashboard.conf"
+    cmp -s "$ROOT/bin/dashbash" "$HOME/bin/dashbash"
+    ! grep -Fq 'apt-get purge' "$MOCK_LOG" || fail 'update intentó purgar dependencias'
+}
+
 run_test 'muestra ayuda sin efectos laterales' test_help
 run_test 'rechaza opciones desconocidas' test_unknown_option
 run_test 'check detecta faltantes y no modifica' test_check_reports_missing_without_writes
@@ -233,6 +345,14 @@ run_test 'reinstalación idéntica es idempotente' test_reinstall_is_idempotent_
 run_test 'respalda archivos modificados' test_changed_files_are_backed_up
 run_test 'launcher invoca kitty correctamente' test_launcher_forwards_expected_kitty_arguments
 run_test 'dashboard conserva sus 8 pestañas' test_dashboard_declares_all_tabs_and_tools
+run_test 'desinstalador elimina solo archivos administrados' test_uninstall_removes_only_managed_files
+run_test 'desinstalador conserva kitty.conf personalizado' test_uninstall_preserves_custom_kitty_conf
+run_test 'desinstalador permite simular sin cambios' test_uninstall_dry_run_changes_nothing
+run_test 'desinstalador retira dependencias bajo petición' test_uninstall_purges_dependencies_on_request
+run_test 'administrador maestro muestra ayuda' test_manager_help
+run_test 'administrador reenvía opciones de instalación' test_manager_forwards_install_options
+run_test 'administrador reenvía opciones de desinstalación' test_manager_forwards_uninstall_options
+run_test 'administrador actualiza mediante desinstalación e instalación' test_manager_update_uninstalls_then_installs
 
 printf '\n%d pruebas; %d fallos\n' "$TESTS" "$FAILED"
 [[ $FAILED -eq 0 ]]

@@ -129,6 +129,9 @@ setup_sudo() {
         SUDO=""
     elif have sudo; then
         SUDO="sudo"
+        log "Se requieren privilegios para instalar paquetes y configurar el locale."
+        printf '  sudo solicitará tu contraseña en esta terminal si es necesario.\n'
+        sudo -v || die "no se obtuvo autorización de sudo"
     else
         die "se necesita root o sudo para instalar paquetes del sistema"
     fi
