@@ -1,158 +1,389 @@
-# dashbash-installer
+# dashbash
 
-Instalador reproducible del dashboard de monitoreo **`dashbash`**: un comando que abre
-[kitty](https://sw.kovidgoyal.net/kitty/) maximizado con una sesión de 8 pestañas de
-herramientas TUI para vigilar el sistema completo.
+[Español](#español) · [English](#english)
+
+---
+
+## Español
+
+`dashbash` instala y abre un dashboard de monitoreo en
+[kitty](https://sw.kovidgoyal.net/kitty/) con ocho pestañas de herramientas TUI.
+El instalador está orientado a Debian/Ubuntu, es idempotente y puede ejecutarse desde un
+clon local o directamente mediante `curl`.
+
+### Vista general
+
+| # | Pestaña | Herramientas | Función |
+|---:|---|---|---|
+| 1 | `Home` | `tclock`, `cava` | Reloj y visualizador de audio |
+| 2 | `System` | `btop` | CPU, memoria y procesos |
+| 3 | `Network` | `bmon`, `watch`, `ss` | Tráfico de red y puertos en escucha |
+| 4 | `Hardware` | `nvtop` | Uso, memoria y temperatura de GPU |
+| 5 | `Disks` | `gdu` | Uso navegable del disco |
+| 6 | `Monitor` | `btm` | Vista consolidada del sistema |
+| 7 | `Files` | `ranger` | Explorador de archivos |
+| 8 | `Logs` | `journalctl` | Logs del sistema en tiempo real |
+
+### Requisitos
+
+- Debian, Ubuntu o Kubuntu con `apt-get`.
+- Acceso como `root` o mediante `sudo` para paquetes y locales.
+- Entorno gráfico para abrir kitty.
+- `systemd` para la pestaña de logs.
+- Drivers de GPU compatibles para que `nvtop` muestre información.
+
+El proyecto es compatible con Ubuntu y Kubuntu 24.04 LTS sobre amd64. Kubuntu usa la misma
+base y los mismos repositorios de paquetes de Ubuntu; KDE Plasma no requiere cambios en el
+instalador. Los componentes `universe` y `multiverse` deben estar habilitados porque varias
+dependencias proceden de ellos. En otras versiones Debian/Ubuntu recientes debería
+funcionar, aunque no están verificadas.
+
+### Compatibilidad entre distribuciones
+
+Comprobación realizada el **1 de septiembre de 2026**. “Probado” significa que se ejecutó
+`install-dashbash.sh --check` en una imagen oficial limpia y se consultó la disponibilidad
+de todos los paquetes APT. La apertura gráfica de kitty no puede validarse en un contenedor.
+
+| Distribución | Estado | Evidencia y ajustes |
+|---|---|---|
+| Ubuntu 24.04 LTS | ✅ Probado | El diagnóstico se ejecuta y los 17 paquetes APT están disponibles. Habilita `universe` y `multiverse`. |
+| Kubuntu 24.04 LTS | ✅ Compatible | Usa la base Ubuntu Noble; KDE Plasma no cambia el instalador. Habilita `universe` y `multiverse`. |
+| Linux Mint 22.x | 🟡 Compatible por base | Mint 22.x usa Ubuntu Noble. No se probó una imagen de escritorio completa. No aplica a LMDE. |
+| Pop!_OS basado en Ubuntu | 🟡 Compatible por base | Usa APT y repositorios Ubuntu; no se probó una imagen de escritorio completa. |
+| Debian 13 (Trixie) | ✅ Probado | El diagnóstico se ejecuta y todos los paquetes APT declarados están disponibles. |
+| Debian 12 (Bookworm) | ⚠️ Requiere ajuste | El diagnóstico se ejecuta; `nvtop` está en `contrib`, que debe habilitarse antes. |
+| Fedora 42 | ❌ No soportado | Probado: se detiene de forma segura porque no existe `apt-get`; requeriría un backend DNF. |
+| Arch Linux / Manjaro | ❌ No soportado | Probado en Arch: se detiene de forma segura; requeriría un backend pacman/AUR. |
+| openSUSE Leap 15.6 | ❌ No soportado | Probado: se detiene de forma segura; requeriría un backend Zypper. |
+
+Para Ubuntu, Kubuntu, Mint o Pop!_OS, si faltan los componentes del repositorio:
+
+```bash
+sudo add-apt-repository universe
+sudo add-apt-repository multiverse
+sudo apt update
+```
+
+En Debian 12, añade `contrib` a la lista `Components` de la fuente Debian en
+`/etc/apt/sources.list` o `/etc/apt/sources.list.d/*.sources`, y ejecuta:
+
+```bash
+sudo apt update
+```
+
+En distribuciones marcadas como no soportadas no basta con cambiar un nombre de paquete:
+el instalador necesita implementar su gestor, sus equivalencias de paquetes y sus pruebas.
+
+### Instalación desde el repositorio
+
+```bash
+git clone <URL_DEL_REPOSITORIO> dashbash-installer
+cd dashbash-installer
+./install-dashbash.sh
+```
+
+### Instalación mediante `curl`
+
+El instalador contiene copias embebidas de la sesión de kitty y del launcher, por lo que
+funciona sin clonar el repositorio. Reemplaza `<URL_RAW>` por la URL raw que contiene
+`install-dashbash.sh`:
+
+```bash
+curl --proto '=https' --tlsv1.2 -fsSL <URL_RAW>/install-dashbash.sh | bash
+```
+
+Para revisar el código antes de ejecutarlo:
+
+```bash
+curl --proto '=https' --tlsv1.2 -fsSLo install-dashbash.sh <URL_RAW>/install-dashbash.sh
+less install-dashbash.sh
+chmod +x install-dashbash.sh
+./install-dashbash.sh
+```
+
+### Modos de uso
+
+| Comando | Resultado |
+|---|---|
+| `./install-dashbash.sh` | Instala dependencias, configuración y launcher |
+| `./install-dashbash.sh --check` | Diagnostica sin cambios; devuelve `1` si falta algo |
+| `./install-dashbash.sh --no-config` | Instala solo dependencias y omite `~/.config` y `~/bin` |
+| `./install-dashbash.sh --help` | Muestra la ayuda |
+
+Los argumentos también funcionan mediante stdin:
+
+```bash
+curl --proto '=https' --tlsv1.2 -fsSL <URL_RAW>/install-dashbash.sh | bash -s -- --check
+curl --proto '=https' --tlsv1.2 -fsSL <URL_RAW>/install-dashbash.sh | bash -s -- --no-config
+```
+
+### Qué instala
+
+Paquetes APT:
+
+`kitty`, `cava`, `btop`, `bmon`, `iproute2`, `procps`, `nvtop`, `gdu`, `ranger`,
+`systemd`, `locales`, `fontconfig`, `fonts-jetbrains-mono`, `ca-certificates`, `curl`,
+`build-essential` y `pkg-config`.
+
+Crates de Rust:
+
+| Crate | Binario | Uso |
+|---|---|---|
+| `clock-tui` | `tclock` | Reloj de Home |
+| `bottom` | `btm` | Pestaña Monitor |
+
+Si `cargo` no está disponible, el instalador instala rustup con un perfil mínimo. La
+primera compilación puede tardar varios minutos. También genera `es_CL.UTF-8` para el reloj.
+
+### Archivos administrados
+
+| Destino | Comportamiento |
+|---|---|
+| `~/.config/kitty/dashboard.conf` | Se actualiza desde el repositorio o la copia embebida |
+| `~/bin/dashbash` | Launcher ejecutable de kitty |
+| `~/.config/kitty/kitty.conf` | Se crea solo si no existe; no reemplaza personalizaciones |
+| `~/.bashrc` | Añade `~/bin` al `PATH` únicamente cuando hace falta |
+
+Antes de reemplazar un archivo administrado, se crea una copia `.bak.<timestamp>`. Una
+reinstalación sin cambios no genera respaldos adicionales.
+
+### Ejecutar y personalizar
+
+Después de abrir una shell nueva:
 
 ```bash
 dashbash
 ```
 
----
-
-## Qué es `dashbash`
-
-`dashbash` es un launcher de una línea:
+Si el comando todavía no aparece en el `PATH`:
 
 ```bash
-exec kitty --start-as=maximized --session "$HOME/.config/kitty/dashboard.conf"
+source ~/.bashrc
+command -v dashbash
 ```
 
-Toda la inteligencia está en la sesión de kitty, que reparte las herramientas en pestañas:
+Para personalizar las pestañas, edita `config/dashboard.conf` y vuelve a ejecutar el
+instalador. Si agregas una herramienta, incorpórala también a `APT_DEPS` o `CARGO_DEPS` en
+`install-dashbash.sh` para mantener sincronizados la instalación y `--check`.
 
-| # | Pestaña    | Herramientas                  | Para qué sirve                              |
-|---|------------|-------------------------------|---------------------------------------------|
-| 1 | `Home`     | `tclock` · `cava`             | Reloj grande (locale es_CL) + visualizador de audio |
-| 2 | `System`   | `btop`                        | CPU, RAM, procesos                          |
-| 3 | `Network`  | `bmon` · `watch ss -tulpn`    | Ancho de banda + puertos en escucha          |
-| 4 | `Hardware` | `nvtop`                       | GPU (uso, memoria, temperatura)              |
-| 5 | `Disks`    | `gdu -d`                      | Uso de disco navegable                       |
-| 6 | `Monitor`  | `btm` (bottom)                | Vista consolidada alternativa                |
-| 7 | `Files`    | `ranger`                      | Explorador de archivos                       |
-| 8 | `Logs`     | `journalctl -f`               | Logs del sistema en vivo                     |
+### Pruebas
 
----
-
-## Instalación
-
-```bash
-git clone <este-repo> dashbash-installer
-cd dashbash-installer
-./install-dashbash.sh
-```
-
-El script es **idempotente**: puedes correrlo las veces que quieras, salta lo que ya está
-instalado y respalda con timestamp cualquier archivo de configuración que reemplace.
-
-### Modos de uso
-
-| Comando | Efecto |
-|---|---|
-| `./install-dashbash.sh` | Instala dependencias, locale, configuración y el launcher |
-| `./install-dashbash.sh --check` | Solo diagnostica qué falta. No instala ni modifica nada |
-| `./install-dashbash.sh --no-config` | Solo dependencias; no toca `~/.config/kitty` ni `~/bin` |
-| `./install-dashbash.sh --help` | Ayuda |
-
-Al terminar imprime una tabla de verificación y sale con código ≠ 0 si algo quedó pendiente,
-así que sirve tal cual dentro de un flujo de provisioning automatizado.
-
----
-
-## Qué instala
-
-### Paquetes del sistema (apt)
-
-`kitty` · `cava` · `btop` · `bmon` · `nvtop` · `gdu` · `ranger` ·
-`iproute2` (aporta `ss`) · `procps` (aporta `watch`) · `systemd` (aporta `journalctl`) ·
-`locales` · `fontconfig` · `fonts-jetbrains-mono` · `build-essential` · `pkg-config` ·
-`curl` · `ca-certificates`
-
-### Crates de Rust (cargo)
-
-Dos herramientas no están empaquetadas en Ubuntu y se compilan desde crates.io. Si `cargo`
-no existe, el script instala `rustup` en modo no interactivo (perfil mínimo, sin modificar
-tu PATH por su cuenta).
-
-| Crate | Binario | Usado en |
-|---|---|---|
-| `clock-tui` | `tclock` | Pestaña Home |
-| `bottom` | `btm` | Pestaña Monitor |
-
-> La compilación de estos dos crates puede tardar varios minutos en la primera corrida.
-
-### Locale
-
-Genera **`es_CL.UTF-8`**, requerido por el reloj de la pestaña Home
-(`LC_TIME=es_CL.UTF-8 tclock`).
-
-### Archivos de configuración
-
-| Destino | Origen en el repo | Nota |
-|---|---|---|
-| `~/.config/kitty/dashboard.conf` | `config/dashboard.conf` | Respalda el anterior si difiere |
-| `~/bin/dashbash` | `bin/dashbash` | Launcher ejecutable |
-| `~/.config/kitty/kitty.conf` | — | Se crea **solo si no existe** (JetBrains Mono 14). Nunca pisa tu configuración |
-
----
-
-## Estructura del repo
-
-```
-dashbash-installer/
-├── install-dashbash.sh    # Instalador principal
-├── bin/
-│   └── dashbash           # Launcher: kitty + sesión del dashboard
-├── config/
-│   └── dashboard.conf     # Sesión de kitty con las 8 pestañas
-├── tests/
-│   ├── run.sh             # Suite de integración aislada (sin instalar paquetes reales)
-│   └── support/
-│       └── mock-command   # Simulador de dependencias y gestores de paquetes
-└── README.md
-```
-
-## Pruebas
-
-La suite usa un `HOME` temporal y comandos simulados, por lo que no ejecuta instalaciones
-reales ni modifica la configuración del usuario:
+La suite usa un `HOME` temporal y simula APT, dpkg, cargo, sudo y locales. No instala
+paquetes reales ni modifica la configuración del usuario:
 
 ```bash
 bash tests/run.sh
 ```
 
----
+Cubre CLI, diagnóstico, paquetes extra, instalación local y vía stdin, `--no-config`,
+idempotencia, respaldos, launcher y las ocho pestañas.
 
-Si `$HOME/bin` no estaba en el `PATH`, el script añade la línea correspondiente a
-`~/.bashrc`; abre una shell nueva o ejecuta `source ~/.bashrc` para activarla.
+### Estructura
 
----
-
-## Requisitos y limitaciones
-
-- **Distro:** pensado y probado en **Ubuntu 24.04 LTS (noble) / amd64**. Debería funcionar
-  en cualquier Debian/Ubuntu reciente; en otras distros el script se detiene porque asume
-  `apt-get`.
-- **Privilegios:** necesita `sudo` (o root) para los paquetes del sistema y el locale.
-  La parte de cargo y la configuración se instalan en tu `$HOME`, sin privilegios.
-- **`nvtop`** se instala siempre, pero solo muestra datos si hay drivers de GPU cargados
-  (NVIDIA, AMD o Intel).
-- **`journalctl`** requiere systemd: no funcionará en WSL1 ni en contenedores sin init.
-- **Sesión gráfica:** `dashbash` abre una ventana de kitty, así que necesita un entorno gráfico.
-  Por SSH sin X11 forwarding no aplica.
-
----
-
-## Personalizar el dashboard
-
-Edita `config/dashboard.conf` y vuelve a correr `./install-dashbash.sh` (o copia el archivo
-directamente a `~/.config/kitty/dashboard.conf`). La sintaxis es la de las
-[sesiones de kitty](https://sw.kovidgoyal.net/kitty/overview/#startup-sessions):
-
-```conf
-new_tab NombreDeLaPestaña
-layout tall              # tall | grid | horizontal | vertical | stack
-launch <comando>         # una ventana por cada 'launch'
+```text
+dashbash-installer/
+├── install-dashbash.sh
+├── bin/
+│   └── dashbash
+├── config/
+│   └── dashboard.conf
+├── tests/
+│   ├── run.sh
+│   └── support/
+│       └── mock-command
+└── README.md
 ```
 
-Si agregas una herramienta nueva, añádela también a `APT_DEPS` o `CARGO_DEPS` dentro de
-`install-dashbash.sh` para que quede cubierta por la instalación y el diagnóstico.
+[Volver al selector de idioma](#dashbash)
+
+---
+
+## English
+
+`dashbash` installs and launches a system-monitoring dashboard in
+[kitty](https://sw.kovidgoyal.net/kitty/) with eight tabs of TUI tools. The installer
+targets Debian/Ubuntu, is idempotent, and can run from a local clone or directly through
+`curl`.
+
+### Overview
+
+| # | Tab | Tools | Purpose |
+|---:|---|---|---|
+| 1 | `Home` | `tclock`, `cava` | Clock and audio visualizer |
+| 2 | `System` | `btop` | CPU, memory, and processes |
+| 3 | `Network` | `bmon`, `watch`, `ss` | Network traffic and listening ports |
+| 4 | `Hardware` | `nvtop` | GPU usage, memory, and temperature |
+| 5 | `Disks` | `gdu` | Interactive disk usage |
+| 6 | `Monitor` | `btm` | Consolidated system view |
+| 7 | `Files` | `ranger` | File browser |
+| 8 | `Logs` | `journalctl` | Live system logs |
+
+### Requirements
+
+- Debian, Ubuntu, or Kubuntu with `apt-get`.
+- Root access or `sudo` for system packages and locales.
+- A graphical environment to launch kitty.
+- `systemd` for the logs tab.
+- Compatible GPU drivers for `nvtop` data.
+
+The project is compatible with Ubuntu and Kubuntu 24.04 LTS on amd64. Kubuntu uses the same
+Ubuntu package base and repositories, and KDE Plasma requires no installer changes. The
+`universe` and `multiverse` components must be enabled because several dependencies come
+from them. Other recent Debian/Ubuntu releases should work, but are not verified.
+
+### Distribution compatibility
+
+Checked on **September 1, 2026**. “Tested” means `install-dashbash.sh --check` was run in a
+clean official image and every declared APT package was queried. Launching the kitty GUI
+cannot be validated inside a container.
+
+| Distribution | Status | Evidence and adjustments |
+|---|---|---|
+| Ubuntu 24.04 LTS | ✅ Tested | Diagnostics run and all 17 APT packages are available. Enable `universe` and `multiverse`. |
+| Kubuntu 24.04 LTS | ✅ Compatible | Uses the Ubuntu Noble base; KDE Plasma does not change the installer. Enable `universe` and `multiverse`. |
+| Linux Mint 22.x | 🟡 Base-compatible | Mint 22.x uses Ubuntu Noble. A complete desktop image was not tested. This does not cover LMDE. |
+| Ubuntu-based Pop!_OS | 🟡 Base-compatible | Uses APT and Ubuntu repositories; a complete desktop image was not tested. |
+| Debian 13 (Trixie) | ✅ Tested | Diagnostics run and every declared APT package is available. |
+| Debian 12 (Bookworm) | ⚠️ Adjustment required | Diagnostics run; `nvtop` is in `contrib`, which must be enabled first. |
+| Fedora 42 | ❌ Unsupported | Tested: exits safely because `apt-get` is absent; a DNF backend is required. |
+| Arch Linux / Manjaro | ❌ Unsupported | Tested on Arch: exits safely; a pacman/AUR backend is required. |
+| openSUSE Leap 15.6 | ❌ Unsupported | Tested: exits safely; a Zypper backend is required. |
+
+On Ubuntu, Kubuntu, Mint, or Pop!_OS, enable missing repository components with:
+
+```bash
+sudo add-apt-repository universe
+sudo add-apt-repository multiverse
+sudo apt update
+```
+
+On Debian 12, add `contrib` to the Debian source `Components` in `/etc/apt/sources.list` or
+`/etc/apt/sources.list.d/*.sources`, then run:
+
+```bash
+sudo apt update
+```
+
+Unsupported distributions need more than package-name substitutions: the installer needs
+a package-manager backend, package mappings, and dedicated tests.
+
+### Install from the repository
+
+```bash
+git clone <REPOSITORY_URL> dashbash-installer
+cd dashbash-installer
+./install-dashbash.sh
+```
+
+### Install with `curl`
+
+The kitty session and launcher are embedded in the installer, so cloning is optional.
+Replace `<RAW_URL>` with the raw URL containing `install-dashbash.sh`:
+
+```bash
+curl --proto '=https' --tlsv1.2 -fsSL <RAW_URL>/install-dashbash.sh | bash
+```
+
+To inspect the script before running it:
+
+```bash
+curl --proto '=https' --tlsv1.2 -fsSLo install-dashbash.sh <RAW_URL>/install-dashbash.sh
+less install-dashbash.sh
+chmod +x install-dashbash.sh
+./install-dashbash.sh
+```
+
+### Usage modes
+
+| Command | Result |
+|---|---|
+| `./install-dashbash.sh` | Installs dependencies, configuration, and launcher |
+| `./install-dashbash.sh --check` | Diagnoses without changes; exits with `1` if anything is missing |
+| `./install-dashbash.sh --no-config` | Installs dependencies only and skips `~/.config` and `~/bin` |
+| `./install-dashbash.sh --help` | Displays help |
+
+Arguments also work when the script is provided through stdin:
+
+```bash
+curl --proto '=https' --tlsv1.2 -fsSL <RAW_URL>/install-dashbash.sh | bash -s -- --check
+curl --proto '=https' --tlsv1.2 -fsSL <RAW_URL>/install-dashbash.sh | bash -s -- --no-config
+```
+
+### What gets installed
+
+APT packages:
+
+`kitty`, `cava`, `btop`, `bmon`, `iproute2`, `procps`, `nvtop`, `gdu`, `ranger`,
+`systemd`, `locales`, `fontconfig`, `fonts-jetbrains-mono`, `ca-certificates`, `curl`,
+`build-essential`, and `pkg-config`.
+
+Rust crates:
+
+| Crate | Binary | Used by |
+|---|---|---|
+| `clock-tui` | `tclock` | Home clock |
+| `bottom` | `btm` | Monitor tab |
+
+If `cargo` is unavailable, the installer installs rustup with a minimal profile. The first
+crate compilation may take several minutes. It also generates `es_CL.UTF-8` for the clock.
+
+### Managed files
+
+| Destination | Behavior |
+|---|---|
+| `~/.config/kitty/dashboard.conf` | Updated from the repository or embedded copy |
+| `~/bin/dashbash` | Executable kitty launcher |
+| `~/.config/kitty/kitty.conf` | Created only when absent; customizations are not overwritten |
+| `~/.bashrc` | Adds `~/bin` to `PATH` only when needed |
+
+Before replacing a managed file, the installer creates a `.bak.<timestamp>` copy. Running
+it again without changes does not create additional backups.
+
+### Run and customize
+
+After opening a new shell:
+
+```bash
+dashbash
+```
+
+If the command is not in `PATH` yet:
+
+```bash
+source ~/.bashrc
+command -v dashbash
+```
+
+To customize the tabs, edit `config/dashboard.conf` and rerun the installer. When adding a
+tool, also add it to `APT_DEPS` or `CARGO_DEPS` in `install-dashbash.sh` so installation
+and `--check` stay in sync.
+
+### Tests
+
+The suite uses a temporary `HOME` and mocks APT, dpkg, cargo, sudo, and locales. It does
+not install real packages or modify the user's configuration:
+
+```bash
+bash tests/run.sh
+```
+
+It covers the CLI, diagnostics, extra packages, local and stdin installation,
+`--no-config`, idempotency, backups, the launcher, and all eight tabs.
+
+### Project structure
+
+```text
+dashbash-installer/
+├── install-dashbash.sh
+├── bin/
+│   └── dashbash
+├── config/
+│   └── dashboard.conf
+├── tests/
+│   ├── run.sh
+│   └── support/
+│       └── mock-command
+└── README.md
+```
+
+[Back to language selector](#dashbash)

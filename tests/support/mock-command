@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -eu
+
+command_name="$(basename "$0")"
+printf '%s' "$command_name" >> "$MOCK_LOG"
+printf ' %s' "$@" >> "$MOCK_LOG"
+printf '\n' >> "$MOCK_LOG"
+
+link_command() {
+    ln -sf mock-command "$MOCK_BIN/$1"
+}
+
+case "$command_name" in
+    locale)
+        [[ ${1:-} == -a ]] && [[ -e "$MOCK_LOCALE_FILE" ]] && printf 'C\nes_CL.utf8\n'
+        ;;
+    locale-gen)
+        : > "$MOCK_LOCALE_FILE"
+        ;;
+    dpkg)
+        [[ ${1:-} == -s ]] && grep -Fxq "${2:-}" "$MOCK_DPKG_FILE"
+        ;;
+    apt-get)
+        if [[ ${1:-} == install ]]; then
+            shift
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    -*) ;;
+                    kitty|cava|btop|bmon|nvtop|gdu|ranger) link_command "$1" ;;
+                    iproute2) link_command ss ;;
+                    procps) link_command watch ;;
+                    systemd) link_command journalctl ;;
+                    locales) link_command locale ;;
+                    fontconfig) link_command fc-list ;;
+                esac
+                [[ $1 != -* ]] && printf '%s\n' "$1" >> "$MOCK_DPKG_FILE"
+                shift
+            done
+        fi
+        ;;
+    cargo)
+        if [[ ${1:-} == --version ]]; then
+            printf 'cargo 1.80.0 (mock)\n'
+        elif [[ ${1:-} == install ]]; then
+            case "${3:-}" in
+                clock-tui) link_command tclock ;;
+                bottom) link_command btm ;;
+            esac
+        fi
+        ;;
+    sudo)
+        exec "$@"
+        ;;
+esac

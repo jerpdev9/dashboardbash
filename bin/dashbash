@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec kitty --start-as=maximized --session "$HOME/.config/kitty/dashboard.conf"
