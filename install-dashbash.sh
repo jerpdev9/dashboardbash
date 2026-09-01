@@ -109,10 +109,10 @@ APT_EXTRA=(
     pkg-config
 )
 
-# Crates de Rust: <binario>:<crate>
+# Crates de Rust: <binario>:<crate>[:<versión fijada>]
 CARGO_DEPS=(
     "tclock:clock-tui"                  # reloj TUI del tab Home
-    "btm:bottom"                        # monitor alternativo del tab Monitor
+    "btm:bottom:0.13.0"                 # compatible con rustc >= 1.85
 )
 
 DASH_LOCALE="es_CL.UTF-8"
@@ -160,6 +160,7 @@ report() {
     local bin pkg path missing=0
     for entry in "${APT_DEPS[@]}" "${CARGO_DEPS[@]}"; do
         bin="${entry%%:*}"; pkg="${entry#*:}"
+        pkg="${pkg%%:*}"
         if path="$(command -v "$bin" 2>/dev/null)"; then
             printf '  %s✔%s %-12s %s%s%s\n' "$C_OK" "$C_RESET" "$bin" "$C_DIM" "$path" "$C_RESET"
         else
@@ -283,30 +284,45 @@ install_locale() {
 install_rust() {
     step "Toolchain de Rust"
     export PATH="$HOME/.cargo/bin:$PATH"
-    if have cargo; then
-        ok "cargo ya presente ($(cargo --version 2>/dev/null | head -1))"
-        return 0
+    if ! have rustup; then
+        log "Instalando rustup (no interactivo)…"
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal
+        # shellcheck source=/dev/null
+        [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+        have rustup || die "rustup no quedó disponible después de instalarlo"
+    else
+        ok "rustup ya está instalado"
     fi
 
-    log "Instalando rustup (no interactivo)…"
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal
-    # shellcheck source=/dev/null
-    [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
-    have cargo || die "cargo no quedó disponible tras instalar rustup"
-    ok "rustup/cargo instalados en $HOME/.cargo"
+    log "Actualizando Rust al canal estable más reciente…"
+    rustup set profile minimal
+    rustup update stable
+    rustup default stable
+    have rustc || die "rustc no quedó disponible después de actualizar Rust"
+    have cargo || die "cargo no quedó disponible después de actualizar Rust"
+    ok "$(rustc --version 2>/dev/null | head -1)"
+    ok "$(cargo --version 2>/dev/null | head -1)"
 }
 
 install_crates() {
     step "Crates de Rust"
-    local bin crate
+    local bin crate rest version
     for entry in "${CARGO_DEPS[@]}"; do
-        bin="${entry%%:*}"; crate="${entry#*:}"
+        bin="${entry%%:*}"
+        rest="${entry#*:}"
+        crate="${rest%%:*}"
+        version=""
+        [[ "$rest" == *:* ]] && version="${rest#*:}"
         if have "$bin"; then
-            ok "$bin ya presente ($crate)"
+            ok "$bin ya presente ($crate${version:+ $version})"
             continue
         fi
-        log "cargo install $crate  → provee '$bin' (compila, puede tardar varios minutos)"
-        cargo install --locked "$crate"
+        log "cargo install $crate${version:+ $version}  → provee '$bin' (compila, puede tardar varios minutos)"
+        if [[ -n "$version" ]]; then
+            cargo install --locked "$crate" --version "$version"
+        else
+            cargo install --locked "$crate"
+        fi
         ok "$bin instalado"
     done
 }

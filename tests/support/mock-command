@@ -48,6 +48,12 @@ case "$command_name" in
             esac
         fi
         ;;
+    rustup)
+        :
+        ;;
+    rustc)
+        [[ ${1:-} == --version ]] && printf 'rustc 1.95.0 (mock)\n'
+        ;;
     apt-cache)
         [[ ! -e ${MOCK_APT_CACHE_MISSING:-/nonexistent} && ${1:-} == show && ${2:-} == fastfetch ]]
         ;;

@@ -174,12 +174,14 @@ Crates de Rust:
 | Crate | Binario | Uso |
 |---|---|---|
 | `clock-tui` | `tclock` | Reloj de Home |
-| `bottom` | `btm` | Pestaña Monitor |
+| `bottom` 0.13.0 | `btm` | Pestaña Monitor; compatible con Rust 1.85 o posterior |
 
-Si `cargo` no está disponible, el instalador instala rustup con un perfil mínimo. La
-primera compilación puede tardar varios minutos. El launcher añade `~/.cargo/bin` a su
-`PATH` para que siempre encuentre `tclock` y `btm`. También genera `es_CL.UTF-8` para el
-reloj.
+El instalador garantiza que `rustup` esté disponible, actualiza Rust al canal estable más
+reciente y lo establece como predeterminado. Esto instala o actualiza conjuntamente
+`rustc` y `cargo`. La primera descarga y compilación puede tardar varios minutos. El
+launcher añade `~/.cargo/bin` a su `PATH` para que siempre encuentre `tclock` y `btm`.
+También genera `es_CL.UTF-8` para el reloj. `bottom` se fija en 0.13.0 como protección
+adicional frente a cambios incompatibles en versiones futuras.
 
 ### Archivos administrados
 
@@ -415,11 +417,14 @@ Rust crates:
 | Crate | Binary | Used by |
 |---|---|---|
 | `clock-tui` | `tclock` | Home clock |
-| `bottom` | `btm` | Monitor tab |
+| `bottom` 0.13.0 | `btm` | Monitor tab; compatible with Rust 1.85 or newer |
 
-If `cargo` is unavailable, the installer installs rustup with a minimal profile. The first
-crate compilation may take several minutes. The launcher adds `~/.cargo/bin` to its `PATH`
-so it can always find `tclock` and `btm`. It also generates `es_CL.UTF-8` for the clock.
+The installer ensures `rustup` is available, updates Rust to the latest stable channel, and
+makes it the default. This installs or updates both `rustc` and `cargo`. The first download
+and crate compilation may take several minutes. The launcher adds `~/.cargo/bin` to its
+`PATH` so it can always find `tclock` and `btm`. It also generates `es_CL.UTF-8` for the
+clock. `bottom` remains pinned to 0.13.0 as additional protection against incompatible
+future changes.
 
 ### Managed files
 

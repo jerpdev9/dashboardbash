@@ -51,7 +51,7 @@ new_fixture() {
     /bin/cp "$ROOT/tests/support/mock-command" "$MOCK_BIN/mock-command"
     /bin/chmod +x "$MOCK_BIN/mock-command"
     local cmd
-    for cmd in apt-get apt-cache add-apt-repository dpkg locale locale-gen sudo cargo; do
+    for cmd in apt-get apt-cache add-apt-repository dpkg locale locale-gen sudo cargo rustup rustc; do
         /bin/ln -s mock-command "$MOCK_BIN/$cmd"
     done
     for cmd in bash basename cat chmod cmp cp date dirname env find grep head ln mkdir mktemp mv rm rmdir sed seq tee touch wc; do
@@ -146,7 +146,9 @@ test_full_install_from_empty_fixture() {
     assert_file_contains "$HOME/.bashrc" 'export PATH="$HOME/bin:$PATH"'
     assert_file_contains "$MOCK_LOG" 'apt-get update -qq'
     assert_file_contains "$MOCK_LOG" 'cargo install --locked clock-tui'
-    assert_file_contains "$MOCK_LOG" 'cargo install --locked bottom'
+    assert_file_contains "$MOCK_LOG" 'cargo install --locked bottom --version 0.13.0'
+    assert_file_contains "$MOCK_LOG" 'rustup update stable'
+    assert_file_contains "$MOCK_LOG" 'rustup default stable'
     [[ -e $MOCK_LOCALE_FILE ]] || fail 'no se generó el locale'
 }
 
@@ -246,6 +248,18 @@ test_dashboard_declares_all_tabs_and_tools() {
     for item in Home System Network Hardware Disks Monitor Files Logs tclock fastfetch btop bmon ss nvtop gdu btm ranger journalctl; do
         grep -Fq "$item" "$config" || fail "falta $item en dashboard.conf"
     done
+}
+
+test_bottom_version_is_pinned_for_rust_compatibility() {
+    grep -Fq '"btm:bottom:0.13.0"' "$ROOT/install-dashbash.sh" \
+        || fail 'bottom debe conservar una versión compatible fijada'
+}
+
+test_installer_updates_latest_stable_rust() {
+    grep -Fq 'rustup update stable' "$ROOT/install-dashbash.sh" \
+        || fail 'el instalador no actualiza el canal estable de Rust'
+    grep -Fq 'rustup default stable' "$ROOT/install-dashbash.sh" \
+        || fail 'el canal estable de Rust no queda predeterminado'
 }
 
 test_uninstall_removes_only_managed_files() {
@@ -364,6 +378,8 @@ run_test 'reinstalación idéntica es idempotente' test_reinstall_is_idempotent_
 run_test 'respalda archivos modificados' test_changed_files_are_backed_up
 run_test 'launcher invoca kitty correctamente' test_launcher_forwards_expected_kitty_arguments
 run_test 'dashboard conserva sus 8 pestañas' test_dashboard_declares_all_tabs_and_tools
+run_test 'bottom conserva una versión compatible de Rust' test_bottom_version_is_pinned_for_rust_compatibility
+run_test 'instalador actualiza Rust estable' test_installer_updates_latest_stable_rust
 run_test 'desinstalador elimina solo archivos administrados' test_uninstall_removes_only_managed_files
 run_test 'desinstalador conserva kitty.conf personalizado' test_uninstall_preserves_custom_kitty_conf
 run_test 'desinstalador permite simular sin cambios' test_uninstall_dry_run_changes_nothing
